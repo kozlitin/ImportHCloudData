@@ -19,6 +19,8 @@ my $csv = Text::CSV->new ( { binary => 1, eol => $/ } ) or die "Cannot use CSV: 
 
 open my $fh, ">", "result.csv" or die "result.csv: $!";
 
+my $Counter = 0;
+
 foreach my $sheet (@{$excel -> {Worksheet}}) {
 
 	next unless $sheet->{Name} =~ /^\d+\s*-/;
@@ -54,7 +56,7 @@ foreach my $sheet (@{$excel -> {Worksheet}}) {
 				if ($item_temp) {
 					$Item = $item_temp;
 				}
-				$csv->print($fh, [$Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $Category, $Item, $Price]);
+				$csv->print($fh, [$Counter++, $Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $Category, $Item, $Price]);
 			}
 		}
 		
