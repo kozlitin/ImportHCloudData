@@ -3,9 +3,18 @@
 use strict;
 
 use Spreadsheet::XLSX;
+use Win32::OLE;
 use Text::CSV;
 
-my $excel = Spreadsheet::XLSX -> new($ARGV[0]);
+my $ExcelOle = Win32::OLE->new('Excel.Application', 'Quit');
+my $ExcelBookOle = $ExcelOle->Workbooks->Open($ARGV[0]);
+
+if (!$ExcelBookOle) {
+	print "Can not open workbook $ARGV[0]\n";
+	$ExcelOle->Quit();
+	$ExcelOle = undef;
+	exit(1);
+}
 
 my $Period = $ARGV[1];
 
@@ -21,38 +30,42 @@ open my $fh, ">", "result.csv" or die "result.csv: $!";
 
 my $Counter = 0;
 
-foreach my $sheet (@{$excel -> {Worksheet}}) {
+for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 
+	my $sheet = $ExcelBookOle->Worksheets($i);
+
+	next unless $sheet->{Visible};
+	
 	next unless $sheet->{Name} =~ /^\d+\s*-/;
 	
-	my $Client = $sheet->{Cells}[2][1]->{Val};
-	my $ResponsiblePerson = $sheet->{Cells}[5][1]->{Val};
-	my $Currency = $sheet->{Cells}[0][40]->{Val};
+	next unless ($sheet->Cells(7,40)->{Value} =~ /Вартість Послуги на місяць/);
+		
+	my $Client = $sheet->Cells(3,2)->{Value};
+	my $ResponsiblePerson = $sheet->Cells(6,2)->{Value};
+	my $Currency = $sheet->Cells(1,41)->{Value};
 	
-	$sheet -> {MaxRow} ||= $sheet -> {MinRow};
-
 	my $Category = '';
 	my $Item;
-	
-	foreach my $row ($sheet->{MinRow} .. $sheet->{MaxRow}) {
+		
+	foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
 	 
-		my $paragraph = $sheet->{Cells}[$row][1]->{Val};
+		my $paragraph = $sheet->Cells($row,2)->{Value};
 		
 		if ($paragraph =~ /^5\.\d+/) {
 			$Category = '-';
 		} elsif ($paragraph =~ /^\d+\.\d+/) {
-			$Category = $sheet->{Cells}[$row][6]->{Val};
+			$Category = $sheet->Cells($row,7)->{Value};
 		}
 		
 		my ($price_text, $Price, $item_temp);
 		
 		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/) {
-			$price_text = $sheet->{Cells}[$row][39]->{Val};
+			$price_text = $sheet->Cells($row,40)->{Value};
 			next if $price_text =~ /-/;
 			next unless $price_text;
 			$Price = $price_text+0;
 			if ($Price != 0) {
-				$item_temp = $sheet->{Cells}[$row][2]->{Val};
+				$item_temp = $sheet->Cells($row,3)->{Value};
 				if ($item_temp) {
 					$Item = $item_temp;
 				}
@@ -65,3 +78,8 @@ foreach my $sheet (@{$excel -> {Worksheet}}) {
 }
 
  close $fh or die "result.csv: $!";
+ 
+$ExcelBookOle->Close(1);
+
+$ExcelOle->Quit();
+$ExcelOle = undef;
