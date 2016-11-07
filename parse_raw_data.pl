@@ -2,12 +2,11 @@
 
 use strict;
 
-use Spreadsheet::XLSX;
 use Win32::OLE;
 use Text::CSV;
 
 my $ExcelOle = Win32::OLE->new('Excel.Application', 'Quit');
-my $ExcelBookOle = $ExcelOle->Workbooks->Open($ARGV[0]);
+my $ExcelBookOle = $ExcelOle->Workbooks->Open($ARGV[0],,1);
 
 if (!$ExcelBookOle) {
 	print "Can not open workbook $ARGV[0]\n";
@@ -79,7 +78,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 
  close $fh or die "result.csv: $!";
  
-$ExcelBookOle->Close(1);
+$ExcelBookOle->Close();
 
 $ExcelOle->Quit();
 $ExcelOle = undef;
