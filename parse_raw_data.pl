@@ -5,6 +5,20 @@ use strict;
 use Win32::OLE;
 use Text::CSV;
 
+my $Period = $ARGV[1];
+
+if (!$Period) {
+	print "Period value should be specified!";
+	exit(1);
+}
+
+my $USDExchangeRate = $ARGV[2];
+
+if (!$USDExchangeRate) {
+	print "USD exchange rate should be specified!";
+	exit(1);
+}
+
 my $ExcelOle = Win32::OLE->new('Excel.Application', 'Quit');
 my $ExcelBookOle = $ExcelOle->Workbooks->Open($ARGV[0],,1);
 
@@ -13,14 +27,6 @@ if (!$ExcelBookOle) {
 	$ExcelOle->Quit();
 	$ExcelOle = undef;
 	exit(1);
-}
-
-my $Period = $ARGV[1];
-
-if (!$Period) {
-	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-	my @abbr = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
-	$Period = sprintf("%s%d", $abbr[$mon], $year+1900);
 }
 
 my $csv = Text::CSV->new ( { binary => 1, eol => $/ } ) or die "Cannot use CSV: ".Text::CSV->error_diag ();
@@ -56,7 +62,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 			$Category = $sheet->Cells($row,7)->{Value};
 		}
 		
-		my ($price_text, $Price, $item_temp);
+		my ($price_text, $Price, $PriceUAH, $PriceUSD, $item_temp);
 		
 		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/) {
 			$price_text = $sheet->Cells($row,40)->{Value};
@@ -68,7 +74,14 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 				if ($item_temp) {
 					$Item = $item_temp;
 				}
-				$csv->print($fh, [$Counter++, $Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $Category, $Item, $Price]);
+				if ($Currency =~ /ÃÐÍ/) {
+					$PriceUAH = $Price;
+					$PriceUSD = sprintf("%.2f", $Price/$USDExchangeRate)+0;
+				} else {
+					$PriceUAH = sprintf("%.2f", $Price*$USDExchangeRate)+0;
+					$PriceUSD = $Price;				
+				}
+				$csv->print($fh, [$Counter++, $Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $Category, $Item, $Price, $PriceUAH, $PriceUSD]);
 			}
 		}
 		
