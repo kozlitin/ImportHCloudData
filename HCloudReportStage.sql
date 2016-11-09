@@ -1,7 +1,7 @@
 USE [DeNovo_HCloud_Reports]
 GO
 
-/****** Object:  Table [dbo].[HCloudReportStage]    Script Date: 04.11.2016 19:42:24 ******/
+/****** Object:  Table [dbo].[HCloudReportStage]    Script Date: 09.11.2016 14:52:59 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -21,6 +21,12 @@ CREATE TABLE [dbo].[HCloudReportStage](
 	[Category] [varchar](50) NULL,
 	[Item] [varchar](512) NULL,
 	[Price] [varchar](50) NULL,
+	[PriceUAH] [varchar](50) NULL,
+	[PriceUSD] [varchar](50) NULL,
+UNIQUE NONCLUSTERED 
+(
+	[ID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY],
 UNIQUE NONCLUSTERED 
 (
 	[ID] ASC

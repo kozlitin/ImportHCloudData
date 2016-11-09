@@ -4,23 +4,59 @@ use strict;
 
 use Win32::OLE;
 use Text::CSV;
+use Getopt::Long;
+use File::Basename;
+use File::Spec;
+    use Cwd;
 
-my $Period = $ARGV[1];
+my ($Period, $USDExchangeRate, $EURExchangeRate, $RUBExchangeRate, $ExcelFileName);
+
+GetOptions (  "period=s"  => \$Period,
+			  "usdrate=f"  => \$USDExchangeRate,
+			  "eurrate=f"  => \$EURExchangeRate,
+			  "rubrate=f"  => \$RUBExchangeRate,
+			  "excelfilename=s"  => \$ExcelFileName
+			  ) or &{ 
+					print_usage();
+					exit(1)
+					};
 
 if (!$Period) {
-	print "Period value should be specified!";
+	print "Period value should be specified!\n";
+	print_usage();
 	exit(1);
 }
 
-my $USDExchangeRate = $ARGV[2];
-
 if (!$USDExchangeRate) {
-	print "USD exchange rate should be specified!";
+	print "USD exchange rate should be specified!\n";
+	print_usage();
 	exit(1);
+}
+
+if (!$EURExchangeRate) {
+	print "EUR exchange rate should be specified!\n";
+	print_usage();
+	exit(1);
+}
+
+if (!$RUBExchangeRate) {
+	print "RUB exchange rate should be specified!\n";
+	print_usage();
+	exit(1);
+}
+
+if (!$ExcelFileName) {
+	print "Excel file name should be specified!\n";
+	print_usage();
+	exit(1);
+}
+
+if(dirname($ExcelFileName) =~ /^\.$/) {
+	$ExcelFileName = File::Spec->catfile( getcwd , $ExcelFileName );
 }
 
 my $ExcelOle = Win32::OLE->new('Excel.Application', 'Quit');
-my $ExcelBookOle = $ExcelOle->Workbooks->Open($ARGV[0],,1);
+my $ExcelBookOle = $ExcelOle->Workbooks->Open($ExcelFileName,,1);
 
 if (!$ExcelBookOle) {
 	print "Can not open workbook $ARGV[0]\n";
@@ -76,10 +112,16 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 				}
 				if ($Currency =~ /ÃÐÍ/) {
 					$PriceUAH = $Price;
-					$PriceUSD = sprintf("%.2f", $Price/$USDExchangeRate)+0;
-				} else {
+					$PriceUSD = sprintf("%.2f", $PriceUAH/$USDExchangeRate)+0;
+				} elsif ($Currency =~ /ÄÎËÀÐ ÑØÀ/) {
 					$PriceUAH = sprintf("%.2f", $Price*$USDExchangeRate)+0;
 					$PriceUSD = $Price;				
+				} elsif ($Currency =~ /EUR/) {
+					$PriceUAH = sprintf("%.2f", $Price*$EURExchangeRate)+0;
+					$PriceUSD = sprintf("%.2f", $PriceUAH/$USDExchangeRate)+0;				
+				} elsif ($Currency =~ /RUB/) {
+					$PriceUAH = sprintf("%.2f", $Price*$RUBExchangeRate)+0;
+					$PriceUSD = sprintf("%.2f", $PriceUAH/$USDExchangeRate)+0;				
 				}
 				$csv->print($fh, [$Counter++, $Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $Category, $Item, $Price, $PriceUAH, $PriceUSD]);
 			}
@@ -95,3 +137,7 @@ $ExcelBookOle->Close();
 
 $ExcelOle->Quit();
 $ExcelOle = undef;
+
+sub print_usage {
+	print "Usage: perl $0 --excelfilename=excel_file_name --period=period_name --usdrate=usd_exchange_rate --eurrate=eur_exchange_rate --rubrate=rub_echange_rate\n";
+}
