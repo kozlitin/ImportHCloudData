@@ -56,7 +56,7 @@ if(dirname($ExcelFileName) =~ /^\.$/) {
 }
 
 my $ExcelOle = Win32::OLE->new('Excel.Application', 'Quit');
-my $ExcelBookOle = $ExcelOle->Workbooks->Open($ExcelFileName,,1);
+my $ExcelBookOle = $ExcelOle->Workbooks->Open($ExcelFileName);
 
 if (!$ExcelBookOle) {
 	print "Can not open workbook $ARGV[0]\n";
@@ -84,10 +84,54 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 	my $Client = $sheet->Cells(3,2)->{Value};
 	my $ResponsiblePerson = $sheet->Cells(6,2)->{Value};
 	my $Currency = $sheet->Cells(1,41)->{Value};
-	
-	my $Category = '';
-	my $Item;
 		
+	my %SheetData;	
+		
+	ExtractDataFromSheet($sheet, \%SheetData, $Currency, 1);
+	
+	$sheet->Cells(1,9)->{Value} = 0;
+	$sheet->Cells(1,12)->{Value} = 0;
+	$sheet->Cells(1,15)->{Value} = 0;
+	$sheet->Cells(1,18)->{Value} = 0;
+	$sheet->Cells(1,21)->{Value} = 0;
+	$sheet->Cells(1,24)->{Value} = 0;
+	
+	$sheet->Calculate();
+	
+	ExtractDataFromSheet($sheet, \%SheetData, $Currency, 0);
+
+	for my $row_num (keys %SheetData) {	
+	
+		my $discount = sprintf("%.2f", (1-$SheetData{$row_num}->{Price0}/$SheetData{$row_num}->{Price}) * -100) + 0;
+	
+		$csv->print($fh, [$Counter++, $Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Unit}, $SheetData{$row_num}->{Price}, $SheetData{$row_num}->{PriceUAH}, $SheetData{$row_num}->{PriceUSD}, $SheetData{$row_num}->{Price0}, $SheetData{$row_num}->{Price0UAH}, $SheetData{$row_num}->{Price0USD}, $discount]);
+		
+	}	
+		
+}
+
+ close $fh or die "result.csv: $!";
+ 
+$ExcelBookOle->Close(0);
+
+$ExcelOle->Quit();
+$ExcelOle = undef;
+
+######################################################
+# Subroutines
+######################################################
+
+sub print_usage {
+	print "Usage: perl $0 --excelfilename=excel_file_name --period=period_name --usdrate=usd_exchange_rate --eurrate=eur_exchange_rate --rubrate=rub_echange_rate\n";
+}
+
+sub ExtractDataFromSheet {
+
+	my ($sheet, $DataHashRef, $Currency, $mode) = @_;
+
+	my $Category = '';
+	my $Item;	
+	
 	foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
 	 
 		my $paragraph = $sheet->Cells($row,2)->{Value};
@@ -98,7 +142,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 			$Category = $sheet->Cells($row,7)->{Value};
 		}
 		
-		my ($price_text, $Price, $PriceUAH, $PriceUSD, $item_temp);
+		my ($price_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit);
 		
 		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/) {
 			$price_text = $sheet->Cells($row,40)->{Value};
@@ -110,6 +154,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 				if ($item_temp) {
 					$Item = $item_temp;
 				}
+				$Unit = $sheet->Cells($row,4)->{Value};
 				if ($Currency =~ /ÃÐÍ/) {
 					$PriceUAH = $Price;
 					$PriceUSD = sprintf("%.2f", $PriceUAH/$USDExchangeRate)+0;
@@ -118,26 +163,27 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 					$PriceUSD = $Price;				
 				} elsif ($Currency =~ /EUR/) {
 					$PriceUAH = sprintf("%.2f", $Price*$EURExchangeRate)+0;
-					$PriceUSD = sprintf("%.2f", $PriceUAH/$USDExchangeRate)+0;				
+					$PriceUSD = sprintf("%.2f", $Price*$EURExchangeRate/$USDExchangeRate)+0;				
 				} elsif ($Currency =~ /RUB/) {
 					$PriceUAH = sprintf("%.2f", $Price*$RUBExchangeRate)+0;
-					$PriceUSD = sprintf("%.2f", $PriceUAH/$USDExchangeRate)+0;				
+					$PriceUSD = sprintf("%.2f", $Price*$RUBExchangeRate/$USDExchangeRate)+0;				
 				}
-				$csv->print($fh, [$Counter++, $Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $Category, $Item, $Price, $PriceUAH, $PriceUSD]);
+				$DataHashRef->{$row}->{Category} = $Category;
+				$DataHashRef->{$row}->{Service} = $Item;
+				$DataHashRef->{$row}->{Unit} = $Unit;
+				if ($mode) {
+					$DataHashRef->{$row}->{Price} = $Price;
+					$DataHashRef->{$row}->{PriceUAH} = $PriceUAH;
+					$DataHashRef->{$row}->{PriceUSD} = $PriceUSD;
+				} else {
+					$DataHashRef->{$row}->{Price0} = $Price;
+					$DataHashRef->{$row}->{Price0UAH} = $PriceUAH;
+					$DataHashRef->{$row}->{Price0USD} = $PriceUSD;				
+				}	
 			}
 		}
 		
 	}	
 	
-}
-
- close $fh or die "result.csv: $!";
- 
-$ExcelBookOle->Close();
-
-$ExcelOle->Quit();
-$ExcelOle = undef;
-
-sub print_usage {
-	print "Usage: perl $0 --excelfilename=excel_file_name --period=period_name --usdrate=usd_exchange_rate --eurrate=eur_exchange_rate --rubrate=rub_echange_rate\n";
+	
 }
