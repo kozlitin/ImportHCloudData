@@ -104,7 +104,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 	
 		my $discount = sprintf("%.2f", (1-$SheetData{$row_num}->{Price0}/$SheetData{$row_num}->{Price}) * -100) + 0;
 	
-		$csv->print($fh, [$Counter++, $Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Unit}, $SheetData{$row_num}->{Price}, $SheetData{$row_num}->{PriceUAH}, $SheetData{$row_num}->{PriceUSD}, $SheetData{$row_num}->{Price0}, $SheetData{$row_num}->{Price0UAH}, $SheetData{$row_num}->{Price0USD}, $discount]);
+		$csv->print($fh, [$Counter++, $Period, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Qty}, $SheetData{$row_num}->{Unit}, $SheetData{$row_num}->{Price}, $SheetData{$row_num}->{PriceUAH}, $SheetData{$row_num}->{PriceUSD}, $SheetData{$row_num}->{Price0}, $SheetData{$row_num}->{Price0UAH}, $SheetData{$row_num}->{Price0USD}, $discount]);
 		
 	}	
 		
@@ -142,7 +142,7 @@ sub ExtractDataFromSheet {
 			$Category = $sheet->Cells($row,7)->{Value};
 		}
 		
-		my ($price_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit);
+		my ($price_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit, $Qty, $qty_temp);
 		
 		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/) {
 			$price_text = $sheet->Cells($row,40)->{Value};
@@ -153,6 +153,12 @@ sub ExtractDataFromSheet {
 				$item_temp = $sheet->Cells($row,3)->{Value};
 				if ($item_temp) {
 					$Item = $item_temp;
+				}
+				$qty_temp = $sheet->Cells($row,7)->{Value};
+				if ($qty_temp =~ /^\d+$/) {
+					$Qty = $qty_temp;
+				} else {
+					$Qty = 1;
 				}
 				$Unit = $sheet->Cells($row,4)->{Value};
 				if ($Currency =~ /ÃÐÍ/) {
@@ -170,6 +176,7 @@ sub ExtractDataFromSheet {
 				}
 				$DataHashRef->{$row}->{Category} = $Category;
 				$DataHashRef->{$row}->{Service} = $Item;
+				$DataHashRef->{$row}->{Qty} = $Qty;
 				$DataHashRef->{$row}->{Unit} = $Unit;
 				if ($mode) {
 					$DataHashRef->{$row}->{Price} = $Price;
