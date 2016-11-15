@@ -48,6 +48,21 @@ my $writer = XML::Writer->new( OUTPUT => 'self', DATA_MODE => 1 );
 $writer->xmlDecl("UTF-8");
 $writer->startTag("records");
 
+###
+# Getting EDRPOU table from first sheet
+#
+my %EDRPOUTable;
+
+my $sheet = $ExcelBookOle->Worksheets(1);
+foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
+	next unless $sheet->Cells($row,6)->{Value} =~ /^1$/;
+	$EDRPOUTable{$sheet->Cells($row,3)->{Value}} = $sheet->Cells($row,8)->{Value};
+}
+
+###
+#
+#
+
 my $Counter = 0;
 
 for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
@@ -86,12 +101,17 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 
 	for my $row_num (keys %SheetData) {	
 		
-		$csv->print($fh, [$Counter++, $sheet->{Name}, $Client, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Qty}, $SheetData{$row_num}->{Unit}, $SheetData{$row_num}->{Price}, $SheetData{$row_num}->{Price0}]);
+		my $edrpou = $EDRPOUTable{$Client};
+		
+		next unless ($edrpou);
+		
+		$csv->print($fh, [$Counter++, $sheet->{Name}, $Client, $edrpou, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Qty}, $SheetData{$row_num}->{Unit}, $SheetData{$row_num}->{Price}, $SheetData{$row_num}->{Price0}]);
 		
 		$writer->startTag("record");
 		$writer->dataElement( counter => $Counter );
 		$writer->dataElement( sheetname => decode('windows-1251', $sheet->{Name}) );
 		$writer->dataElement( client => decode('windows-1251', $Client) );
+		$writer->dataElement( edrpou => $edrpou );
 		$writer->dataElement( responsibleperson => decode('windows-1251', $ResponsiblePerson) );
 		$writer->dataElement( currency => $Currency );
 		$writer->dataElement( category => decode('windows-1251', $SheetData{$row_num}->{Category}) );
