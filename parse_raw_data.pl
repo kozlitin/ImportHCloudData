@@ -164,13 +164,17 @@ sub ExtractDataFromSheet {
 			$Category = $sheet->Cells($row,7)->{Value};
 		}
 		
-		my ($price_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit, $Qty, $qty_temp);
+		my ($price_text, $price_onetime_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit, $Qty, $qty_temp);
 		
 		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/) {
 			$price_text = $sheet->Cells($row,40)->{Value};
 			next if $price_text =~ /-/;
 			next unless $price_text;
 			$Price = $price_text+0;
+			$price_onetime_text = $sheet->Cells($row,37)->{Value};
+			if ($price_onetime_text+0) {
+				$Price = $Price+($price_onetime_text+0);
+			}
 			if ($Price != 0) {
 				$item_temp = $sheet->Cells($row,3)->{Value};
 				if ($item_temp) {
