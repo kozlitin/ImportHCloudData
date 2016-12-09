@@ -64,6 +64,7 @@ foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
 #
 
 my $Counter = 0;
+my $MonthlyPriceColumn = 0;
 
 for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 
@@ -72,15 +73,21 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 	next unless $sheet->{Visible};
 	
 	next unless $sheet->{Name} =~ /^\d+\s*-/;
-	
-	next unless ($sheet->Cells(7,40)->{Value} =~ /Âàðò³ñòü Ïîñëóãè íà ì³ñÿöü/);
-		
+
+	if ($sheet->Cells(7,40)->{Value} =~ /Âàðò³ñòü Ïîñëóãè íà ì³ñÿöü/) {
+		$MonthlyPriceColumn = 40;
+	} elsif ($sheet->Cells(7,22)->{Value} =~ /Âàðò³ñòü Ïîñëóãè íà ì³ñÿöü/) {
+		$MonthlyPriceColumn = 22;
+	} else {
+		next;
+	}
+			
 	my $Client = $sheet->Cells(3,2)->{Value};
 	my $ResponsiblePerson = $sheet->Cells(6,2)->{Value};
 	
 	my ($currency_temp, $Currency);
 	
-	my $currency_temp = $sheet->Cells(1,41)->{Value};
+	my $currency_temp = $sheet->Cells(1,$MonthlyPriceColumn+1)->{Value};
 	if ($currency_temp =~ /ÃÐÍ/) {
 		$Currency = "980";
 	} elsif ($currency_temp =~ /ÄÎËÀÐ ÑØÀ/) {
@@ -167,11 +174,11 @@ sub ExtractDataFromSheet {
 		my ($price_text, $price_onetime_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit, $Qty, $qty_temp);
 		
 		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/) {
-			$price_text = $sheet->Cells($row,40)->{Value};
-			next if $price_text =~ /-/;
+			$price_text = $sheet->Cells($row,$MonthlyPriceColumn)->{Value};
+			next if $price_text =~ /^-$/;
 			next unless $price_text;
 			$Price = $price_text+0;
-			$price_onetime_text = $sheet->Cells($row,37)->{Value};
+			$price_onetime_text = $sheet->Cells($row,$MonthlyPriceColumn-3)->{Value};
 			if ($price_onetime_text+0) {
 				$Price = $Price+($price_onetime_text+0);
 			}
