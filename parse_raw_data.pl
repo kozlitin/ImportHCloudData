@@ -54,9 +54,16 @@ $writer->startTag("records");
 my %EDRPOUTable;
 
 my $sheet = $ExcelBookOle->Worksheets(1);
+
+my $EDRPOUColumn = 8;
+
+if ($sheet->Cells(5,7)->{Value} =~ /ªÄÐÏÎÓ/) {
+	$EDRPOUColumn = 7;
+}
+
 foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
 	next unless $sheet->Cells($row,6)->{Value} =~ /^1$/;
-	$EDRPOUTable{$sheet->Cells($row,3)->{Value}} = $sheet->Cells($row,8)->{Value};
+	$EDRPOUTable{$sheet->Cells($row,3)->{Value}} = $sheet->Cells($row,$EDRPOUColumn)->{Value};
 }
 
 ###
