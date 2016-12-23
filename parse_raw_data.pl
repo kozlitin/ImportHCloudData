@@ -101,6 +101,8 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 		$Currency = "840";
 	} 
 		
+	print $sheet->{Name} . "\n";	
+		
 	my %SheetData;	
 		
 	ExtractDataFromSheet($sheet, \%SheetData, 1);
@@ -180,15 +182,11 @@ sub ExtractDataFromSheet {
 		
 		my ($price_text, $price_onetime_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit, $Qty, $qty_temp);
 		
-		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/) {
+		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/ || $paragraph =~ /^\-$/) {
 			$price_text = $sheet->Cells($row,$MonthlyPriceColumn)->{Value};
-			next if $price_text =~ /^-$/;
-			next unless $price_text;
-			$Price = $price_text+0;
 			$price_onetime_text = $sheet->Cells($row,$MonthlyPriceColumn-3)->{Value};
-			if ($price_onetime_text+0) {
-				$Price = $Price+($price_onetime_text+0);
-			}
+			$Price = ($price_text+0)+($price_onetime_text+0);
+			next unless $Price;
 			if ($Price != 0) {
 				$item_temp = $sheet->Cells($row,3)->{Value};
 				if ($item_temp) {
