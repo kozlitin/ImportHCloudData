@@ -85,6 +85,8 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 		$MonthlyPriceColumn = 40;
 	} elsif ($sheet->Cells(7,22)->{Value} =~ /Вартість Послуги на місяць/) {
 		$MonthlyPriceColumn = 22;
+	} elsif ($sheet->Cells(7,42)->{Value} =~ /Вартість Послуги на місяць/) {
+		$MonthlyPriceColumn = 42;	
 	} else {
 		next;
 	}
@@ -101,6 +103,12 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 		$Currency = "840";
 	} 
 
+	unless($Currency) {
+		if ($sheet->{Name} =~ /\$/) {
+			$Currency = "840";
+		}		
+	}
+	
 	unless($Currency) {
 		$Currency = "980";
 	}
