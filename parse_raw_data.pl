@@ -100,7 +100,11 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 	} elsif ($currency_temp =~ /ÄÎËÀÐ ÑØÀ/) {
 		$Currency = "840";
 	} 
-		
+
+	unless($Currency) {
+		$Currency = "980";
+	}
+	
 	print $sheet->{Name} . "\n";	
 		
 	my %SheetData;	
@@ -121,7 +125,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 		
 		next unless ($edrpou);
 		
-		$csv->print($fh, [$Counter++, $sheet->{Name}, $Client, $edrpou, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Qty}, $SheetData{$row_num}->{Unit}, $SheetData{$row_num}->{Price}, $SheetData{$row_num}->{Price0}]);
+		$csv->print($fh, [$Counter++, $sheet->{Name}, $Client, $edrpou, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Qty}, $SheetData{$row_num}->{Unit}, ($SheetData{$row_num}->{Price} ? $SheetData{$row_num}->{Price} : 0), ($SheetData{$row_num}->{Price0} ? $SheetData{$row_num}->{Price0} : 0)]);
 		
 		$writer->startTag("record");
 		$writer->dataElement( counter => $Counter );
@@ -134,8 +138,8 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 		$writer->dataElement( service => decode('windows-1251', $SheetData{$row_num}->{Service}) );
 		$writer->dataElement( qty => $SheetData{$row_num}->{Qty} );
 		$writer->dataElement( unit => decode('windows-1251', $SheetData{$row_num}->{Unit}) );
-		$writer->dataElement( price => $SheetData{$row_num}->{Price} );
-		$writer->dataElement( price0 => $SheetData{$row_num}->{Price0} );
+		$writer->dataElement( price => ($SheetData{$row_num}->{Price} ? $SheetData{$row_num}->{Price} : 0) ) ;
+		$writer->dataElement( price0 => ($SheetData{$row_num}->{Price0} ? $SheetData{$row_num}->{Price0} : 0) );
 		$writer->endTag("record");		
 		
 	}	
