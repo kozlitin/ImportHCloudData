@@ -57,8 +57,10 @@ my $sheet = $ExcelBookOle->Worksheets(1);
 
 my $EDRPOUColumn = 8;
 
-if ($sheet->Cells(5,7)->{Value} =~ /ЄДРПОУ/) {
-	$EDRPOUColumn = 7;
+foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
+	if ($sheet->Cells($row,7)->{Value} =~ /ЄДРПОУ/) {
+		$EDRPOUColumn = 7;
+	}
 }
 
 foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
@@ -71,7 +73,7 @@ foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
 #
 
 my $Counter = 0;
-my $MonthlyPriceColumn = 0;
+my $MonthlyPriceColumn;
 
 for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 
@@ -81,15 +83,26 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 	
 	next unless $sheet->{Name} =~ /^\d+\s*-/;
 
-	if ($sheet->Cells(7,40)->{Value} =~ /Вартість Послуги на місяць/) {
-		$MonthlyPriceColumn = 40;
-	} elsif ($sheet->Cells(7,22)->{Value} =~ /Вартість Послуги на місяць/) {
-		$MonthlyPriceColumn = 22;
-	} elsif ($sheet->Cells(7,42)->{Value} =~ /Вартість Послуги на місяць/) {
-		$MonthlyPriceColumn = 42;	
-	} else {
-		next;
-	}
+	$MonthlyPriceColumn = 0;
+	
+	foreach my $column (1 .. $sheet->Cells->SpecialCells(11)->{Column}) {
+		if ($sheet->Cells(7,$column)->{Value} =~ /Вартість Послуги на місяць/) {
+			$MonthlyPriceColumn = $column;
+			last;
+		}
+	}	
+	
+	next unless($MonthlyPriceColumn);
+	
+	#if ($sheet->Cells(7,40)->{Value} =~ /Вартість Послуги на місяць/) {
+	#	$MonthlyPriceColumn = 40;
+	#} elsif ($sheet->Cells(7,22)->{Value} =~ /Вартість Послуги на місяць/) {
+	#	$MonthlyPriceColumn = 22;
+	#} elsif ($sheet->Cells(7,42)->{Value} =~ /Вартість Послуги на місяць/) {
+	#	$MonthlyPriceColumn = 42;	
+	#} else {
+	#	next;
+	#}
 			
 	my $Client = $sheet->Cells(3,2)->{Value};
 	my $ResponsiblePerson = $sheet->Cells(6,2)->{Value};
@@ -112,9 +125,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 	unless($Currency) {
 		$Currency = "980";
 	}
-	
-	print $sheet->{Name} . "\n";	
-		
+			
 	my %SheetData;	
 		
 	ExtractDataFromSheet($sheet, \%SheetData, 1);
@@ -127,6 +138,8 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 	
 	ExtractDataFromSheet($sheet, \%SheetData, 0);
 
+	print $sheet->{Name} . " : " . scalar(keys %SheetData) . " : " . $EDRPOUTable{$Client} . "\n";	
+	
 	for my $row_num (keys %SheetData) {	
 		
 		my $edrpou = $EDRPOUTable{$Client};
