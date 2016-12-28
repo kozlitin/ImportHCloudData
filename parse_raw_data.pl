@@ -85,7 +85,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 
 	$MonthlyPriceColumn = 0;
 	
-	foreach my $column (1 .. $sheet->Cells->SpecialCells(11)->{Column}) {
+	for (my $column = $sheet->Cells->SpecialCells(11)->{Column}; $column > 0; $column-- ) {
 		if ($sheet->Cells(7,$column)->{Value} =~ /Вартість Послуги на місяць/) {
 			$MonthlyPriceColumn = $column;
 			last;
@@ -195,11 +195,20 @@ sub ExtractDataFromSheet {
 	my $Category = '';
 	my $Item;	
 	
+	my $OtherServices = "5";
+	
+	foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
+		if ($sheet->Cells($row,2)->{Value} =~ /^4$/ && $sheet->Cells($row,3)->{Value} =~ /^Інші Послуги/) {
+			$OtherServices = "4";
+			last;
+		}
+	}
+	
 	foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
 	 
 		my $paragraph = $sheet->Cells($row,2)->{Value};
 		
-		if ($paragraph =~ /^5\.\d+/) {
+		if ($paragraph =~ /^$OtherServices\.\d+/) {
 			$Category = '-';
 		} elsif ($paragraph =~ /^\d+\.\d+/) {
 			$Category = $sheet->Cells($row,7)->{Value};
@@ -207,11 +216,14 @@ sub ExtractDataFromSheet {
 		
 		my ($price_text, $price_onetime_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit, $Qty, $qty_temp);
 		
-		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^5\.\d+/ || $paragraph =~ /^\-$/) {
+		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^$OtherServices\.\d+/ || $paragraph =~ /^\-$/) {
 			$price_text = $sheet->Cells($row,$MonthlyPriceColumn)->{Value};
 			$price_onetime_text = $sheet->Cells($row,$MonthlyPriceColumn-3)->{Value};
 			$Price = ($price_text+0)+($price_onetime_text+0);
 			next unless $Price;
+			
+			#print "$price_text - " . ($price_text+0) . " : $price_onetime_text -  " . ($price_onetime_text+0) . " = $Price\n" if $sheet->{Name} =~ /^03/;
+			
 			if ($Price != 0) {
 				$item_temp = $sheet->Cells($row,3)->{Value};
 				if ($item_temp) {
