@@ -60,11 +60,25 @@ my $EDRPOUColumn = 8;
 foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
 	if ($sheet->Cells($row,7)->{Value} =~ /ªÄÐÏÎÓ/) {
 		$EDRPOUColumn = 7;
+		last;
+	}
+	if ($sheet->Cells($row,6)->{Value} =~ /ªÄÐÏÎÓ/) {
+		$EDRPOUColumn = 6;
+		last;
+	}	
+}
+
+my $ImportColumn = 6;
+
+foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
+	if ($sheet->Cells($row,5)->{Value} =~ /Èìïîðò/) {
+		$ImportColumn = 5;
+		last;
 	}
 }
 
 foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
-	next unless $sheet->Cells($row,6)->{Value} =~ /^1$/;
+	next unless $sheet->Cells($row,$ImportColumn)->{Value} =~ /^1$/;
 	$EDRPOUTable{$sheet->Cells($row,3)->{Value}} = $sheet->Cells($row,$EDRPOUColumn)->{Value};
 }
 
