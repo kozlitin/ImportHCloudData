@@ -95,7 +95,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 
 	next unless $sheet->{Visible};
 	
-	next unless $sheet->{Name} =~ /^\d+\s*-/;
+	next unless $sheet->{Name} =~ /^\d+\s*\D/;
 
 	$MonthlyPriceColumn = 0;
 	
