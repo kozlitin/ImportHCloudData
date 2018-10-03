@@ -42,7 +42,7 @@ if (!$ExcelBookOle) {
 
 my $csv = Text::CSV->new ( { binary => 1, eol => $/ } ) or die "Cannot use CSV: ".Text::CSV->error_diag ();
 
-open my $fh, ">", "result.csv" or die "result.csv: $!";
+open my $fh, ">", "result_hpi.csv" or die "result_hpi.csv: $!";
 
 my $writer = XML::Writer->new( OUTPUT => 'self', DATA_MODE => 1 );
 $writer->xmlDecl("UTF-8");
@@ -107,20 +107,9 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 	}	
 	
 	next unless($MonthlyPriceColumn);
-	
-	#if ($sheet->Cells(7,40)->{Value} =~ /Вартість Послуги на місяць/) {
-	#	$MonthlyPriceColumn = 40;
-	#} elsif ($sheet->Cells(7,22)->{Value} =~ /Вартість Послуги на місяць/) {
-	#	$MonthlyPriceColumn = 22;
-	#} elsif ($sheet->Cells(7,42)->{Value} =~ /Вартість Послуги на місяць/) {
-	#	$MonthlyPriceColumn = 42;	
-	#} else {
-	#	next;
-	#}
-			
+				
 	my $Client = $sheet->Cells(3,2)->{Value};
 	my $ResponsiblePerson = $sheet->Cells(6,2)->{Value};
-    my $CloudType = $sheet->Cells(1,3)->{Value};
 	
 	my ($currency_temp, $Currency);
 	
@@ -161,7 +150,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 		
 		next unless ($edrpou);
 		
-		$csv->print($fh, [$Counter++, $sheet->{Name}, $Client, $edrpou, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Qty}, $SheetData{$row_num}->{Unit}, ($SheetData{$row_num}->{Price} ? $SheetData{$row_num}->{Price} : 0), ($SheetData{$row_num}->{Price0} ? $SheetData{$row_num}->{Price0} : 0), $CloudType]);
+		$csv->print($fh, [$Counter++, $sheet->{Name}, $Client, $edrpou, $ResponsiblePerson, $Currency, $SheetData{$row_num}->{Category}, $SheetData{$row_num}->{Service}, $SheetData{$row_num}->{Qty}, $SheetData{$row_num}->{Unit}, ($SheetData{$row_num}->{Price} ? $SheetData{$row_num}->{Price} : 0), ($SheetData{$row_num}->{Price0} ? $SheetData{$row_num}->{Price0} : 0), "HPI"]);
 		
 		$writer->startTag("record");
 		$writer->dataElement( counter => $Counter );
@@ -176,7 +165,7 @@ for (my $i=1; $i <= $ExcelBookOle->Sheets->{Count}; $i++ ) {
 		$writer->dataElement( unit => decode('windows-1251', $SheetData{$row_num}->{Unit}) );
 		$writer->dataElement( price => ($SheetData{$row_num}->{Price} ? $SheetData{$row_num}->{Price} : 0) ) ;
 		$writer->dataElement( price0 => ($SheetData{$row_num}->{Price0} ? $SheetData{$row_num}->{Price0} : 0) );
-        $writer->dataElement( cloudtype => $CloudType );
+        $writer->dataElement( cloudtype => "HPI" );
 		$writer->endTag("record");		
 		
 	}	
@@ -187,9 +176,9 @@ close $fh or die "result.csv: $!";
  
 $writer->endTag("records");
 
-open my $fhxml, ">:encoding(UTF-8)", "result.xml" or die "result.xml: $!";
+open my $fhxml, ">:encoding(UTF-8)", "result_hpi.xml" or die "result_hpi.xml: $!";
 print $fhxml $writer->to_string;
-close $fhxml or die "result.xml: $!";
+close $fhxml or die "result_hpi.xml: $!";
  
 $ExcelBookOle->Close(0);
 
@@ -211,28 +200,24 @@ sub ExtractDataFromSheet {
 	my $Category = '';
 	my $Item;	
 	
-	my $OtherServices = "5";
-	
-	foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
-		if ($sheet->Cells($row,2)->{Value} =~ /^4$/ && $sheet->Cells($row,3)->{Value} =~ /^Інші Послуги/) {
-			$OtherServices = "4";
-			last;
-		}
-	}
-	
+	my $OtherServices = 0;
+		
 	foreach my $row (1 .. $sheet->Cells->SpecialCells(11)->{Row}) {
 	 
 		my $paragraph = $sheet->Cells($row,2)->{Value};
 		
-		if ($paragraph =~ /^$OtherServices\.\d+/) {
-			$Category = '-';
-		} elsif ($paragraph =~ /^\d+\.\d+/) {
-			$Category = $sheet->Cells($row,7)->{Value};
+		if ($sheet->Cells($row,2)->{Value} =~ /^IV$/ && $sheet->Cells($row,3)->{Value} =~ /^Інші/) {
+			$OtherServices = 1;
+			next;
+		}
+
+		if ($sheet->Cells($row,2)->{Value} =~ /^Итого:/) {
+			last;
 		}
 		
 		my ($price_text, $price_onetime_text, $Price, $PriceUAH, $PriceUSD, $item_temp, $Unit, $Qty, $qty_temp);
 		
-		if ($paragraph =~ /^\s*$/ || $paragraph =~ /^$OtherServices\.\d+/ || $paragraph =~ /^\-$/) {
+		if ($paragraph =~ /^\s*$/ || $OtherServices || $paragraph =~ /^\-$/) {
 			$price_text = $sheet->Cells($row,$MonthlyPriceColumn)->{Value};
 			$price_onetime_text = $sheet->Cells($row,$MonthlyPriceColumn-3)->{Value};
 			$Price = ($price_text+0)+($price_onetime_text+0);
